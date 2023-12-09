@@ -39,14 +39,19 @@ public class Server {
             ch.sendMessage(message);
         }
     }
-    public Boolean connectionVerify(String id) {
+    public Map<String, Object> connectionVerify(String id) {
+        Map<String, Object> result = new HashMap<>();
         for (ConnectionHandler ch : connections) {
             // Assuming id is a public attribute or has a getter method within ConnectionHandler
-            if(ch.id.equals(id)) { // Replace 'id' with the actual attribute name
-                return true;
+            if (ch.getId().equals(id)) { // Replace 'id' with the actual attribute name
+                result.put("ClientStatus", true);
+                result.put("ClientConnection", ch);
+                return result;
             }
         }
-        return false;
+        result.put("ClientStatus", false);
+        result.put("ClientConnection", null); // Using null to represent no connection found
+        return result;
     }
 
     private void shutdown() {
