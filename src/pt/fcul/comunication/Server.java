@@ -1,4 +1,5 @@
 package pt.fcul.comunication;
+
 import java.io.*;
 import java.net.*;
 import java.util.*;
@@ -16,6 +17,7 @@ public class Server {
 
     public void run() {
         try {
+        	
             server = new ServerSocket(9999);
             System.out.println("Server started. Waiting for clients...");
 
@@ -32,9 +34,19 @@ public class Server {
     }
 
     public void broadcast(String message) {
+    	// corrigir isto, a pm nãod eve ser enviada para todos mas sim para o destino certo
         for (ConnectionHandler ch : connections) {
             ch.sendMessage(message);
         }
+    }
+    public Boolean connectionVerify(String id) {
+        for (ConnectionHandler ch : connections) {
+            // Assuming id is a public attribute or has a getter method within ConnectionHandler
+            if(ch.id.equals(id)) { // Replace 'id' with the actual attribute name
+                return true;
+            }
+        }
+        return false;
     }
 
     private void shutdown() {
