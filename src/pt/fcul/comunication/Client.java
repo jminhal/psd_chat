@@ -8,10 +8,6 @@ import java.util.concurrent.ExecutorService;
 import pt.fcul.comunication.Server.ConnectionHandler;
 
 
-
-
-
-
 class Friend {
     private String id;
     private String username;
