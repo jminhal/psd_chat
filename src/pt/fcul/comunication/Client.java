@@ -5,13 +5,6 @@ import java.net.*;
 import java.util.*;
 
 
-<<<<<<< HEAD
-=======
-
-
-
-
->>>>>>> 9c78a4b571ad4517f764093873cf27b49b773c61
 class Friend {
     private String id;
     private String username;
