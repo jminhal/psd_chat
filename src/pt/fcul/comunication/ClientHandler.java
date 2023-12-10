@@ -8,16 +8,13 @@ import java.net.Socket;
 import java.util.HashSet;
 import java.util.Set;
 //
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.PrivateKey;
-import java.util.Base64;
-import javax.crypto.Cipher;
+import pt.fcul.comunication.RSA;
 
 
 
 public class ClientHandler implements Runnable {
-	
+	private static PrivateKey privateKey;
+    private static PublicKey publicKey;
 	private Socket socket;
 	private Server2 server;
 	private String userId;
@@ -40,10 +37,13 @@ public class ClientHandler implements Runnable {
 			
 			writer.println("Please enter a username:");
 			String userName = reader.readLine();
-			RSA rsa = new RSA();
 
 			server.addClient(this);
 			
+			keyGen();
+
+
+
 			String input;
 			while ((input = reader.readLine()) != null) {
 				processCommand(input);
@@ -56,6 +56,13 @@ public class ClientHandler implements Runnable {
 	
 	public void setUserId(String userId) {
 		this.userId = userId;
+	}
+	public keyGen(){
+		RSA rsa = new RSA(); // Create an instance of the RSA class
+		HashMap<String, Key> keyPair = rsa.generateKeyPair(); // Call generateKeyPair method
+		// Retrieve the keys from the HashMap
+		privateKey = (PrivateKey) keyPair.get("privateKey");
+		publicKey = (PublicKey) keyPair.get("publicKey");
 	}
 	
 	public String getUserId() {
@@ -86,8 +93,12 @@ public class ClientHandler implements Runnable {
 				if (!friends.contains(friendId)) {
 					
 					friends.add(friendId);
+
 					
 					writer.println("Friend added: " + friendId);
+
+					//Adicionar o nome do amigo
+					// fazer troca de keys ou seja chamar DH
 					
 
 					
@@ -122,6 +133,7 @@ public class ClientHandler implements Runnable {
 				if (friendHandler != null) {
 					//friendHandler.sendMessage(friendId, message);
 					friendHandler.receiveMessage(userId, message);
+
 				}
 				
 			} else {
