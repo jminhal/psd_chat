@@ -2,10 +2,13 @@ package pt.fcul.comunication;
 
 //https://www.youtube.com/watch?v=R9eerqP78PE
 import java.security.PublicKey;
+import java.security.Key;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.PrivateKey;
 import java.util.Base64;
+import java.util.HashMap;
+
 import javax.crypto.Cipher;
 
 
@@ -13,15 +16,26 @@ public class RSA {
 
     private PrivateKey privateKey;
     private PublicKey publicKey;
-    public RSA(){
+    public HashMap<String, Key> generateKeyPair() {
+        HashMap<String, Key> keyMap = new HashMap<>();
+        
         try {
             KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
             generator.initialize(1024);
             KeyPair pair = generator.generateKeyPair();
             privateKey = pair.getPrivate();
             publicKey = pair.getPublic();
-        } catch (Exception ignored) {
+            // Now you can use privateKey and publicKey as needed
+            System.out.println("RSA CLASS Private Key: " + privateKey);
+            System.out.println("RSA CLASS PPublic Key: " + publicKey);
+            keyMap.put("privateKey", privateKey);
+            keyMap.put("publicKey", publicKey);
+        } catch (Exception e) {
+            // Handle exception
+            e.printStackTrace();
         }
+        
+        return keyMap;
     }
 
 
