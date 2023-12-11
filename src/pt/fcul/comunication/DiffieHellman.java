@@ -2,27 +2,46 @@
 
 package pt.fcul.comunication;
 
+import java.math.BigInteger;
+import java.security.NoSuchAlgorithmException;
+import java.security.interfaces.RSAPrivateKey;
+import java.security.interfaces.RSAPublicKey;
+
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 
 public class DiffieHellman {
-    public static void exchangeKeys(int clientPublicKeyA, int clientPublicKeyB, int clientPriveteKeyA, int clientPriveteKeyB) {
-        long P, G, x, a, y, b, ka, kb;
-        System.out.println("Both the users should be agreed upon the public keys G and P");
+    
+    public static void getKeys(String userId1, String userId2, Server2 server) {
+    	
+    	ClientHandler user1Handler = server.getClientHandler(userId1);
+    	ClientHandler user2Handler = server.getClientHandler(userId2);
+    	
+    	RSAPublicKey publicKeyUser1 = (RSAPublicKey) user1Handler.getPublicKey();
+    	RSAPrivateKey privateKeyUser1 = (RSAPrivateKey) user1Handler.getPrivateKey();
+    	RSAPublicKey publicKeyUser2 = (RSAPublicKey) user2Handler.getPublicKey();
+    	RSAPrivateKey privateKeyUser2 = (RSAPrivateKey) user2Handler.getPrivateKey();	
+    	
+    	long P, G, x, a, y, b, ka, kb;
+    	G = publicKeyUser1.getModulus().longValue();
+        P = publicKeyUser2.getModulus().longValue();
         
-        // take inputs for keys  
-        G = clientPublicKeyA;
-        P = clientPublicKeyB;
-        
-        a = clientPriveteKeyA;
-        b = clientPriveteKeyB;
+        a = privateKeyUser1.getModulus().longValue();
+        b = privateKeyUser2.getModulus().longValue();
 
         x = calculatePower(G, a, P);
         y = calculatePower(G, b, P);
 
-        ka = calculatePower(y, a, P); //valor privado de A
-        kb = calculatePower(x, b, P); //valor privado de A
-
-        System.out.println("Secret key for User1 is:" + ka);
-        System.out.println("Secret key for User2 is:" + kb);
+        ka = calculatePower(y, a, P);
+        kb = calculatePower(x, b, P);
+        
+        BigInteger bigIntegerKa = new BigInteger(Long.toString(ka));
+        BigInteger bigIntegerKb = new BigInteger(Long.toString(kb));
+    	
+    	user1Handler.addSecretKeys(userId2, bigIntegerKa);
+    	user2Handler.addSecretKeys(userId1, bigIntegerKb);
+    	
     }
 
     private static long calculatePower(long x, long y, long P) {
@@ -34,4 +53,7 @@ public class DiffieHellman {
             return result;
         }
     }
+    
+    
+    
 }

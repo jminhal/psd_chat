@@ -4,21 +4,32 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.math.BigInteger;
 import java.net.Socket;
+import java.security.Key;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.interfaces.RSAPrivateKey;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
+
+import javax.crypto.SecretKey;
+
 //
 import pt.fcul.comunication.RSA;
-
 
 
 public class ClientHandler implements Runnable {
 	private static PrivateKey privateKey;
     private static PublicKey publicKey;
+    private Map<String, BigInteger> secretKeys;
 	private Socket socket;
 	private Server2 server;
 	private String userId;
 	private PrintWriter writer;
+	private RSA rsa;
 	
 	private Set<String> friends; // Estás a partilhar a lista de amigos entre clientes? Se não onde é que são adicionados os amigos a cada cliente??
 	
@@ -26,6 +37,7 @@ public class ClientHandler implements Runnable {
 		this.socket = socket;
 		this.server = server;
 		this.friends = new HashSet<>();
+		this.secretKeys = new HashMap<>(); 
 	}
 
 	@Override
@@ -57,8 +69,9 @@ public class ClientHandler implements Runnable {
 	public void setUserId(String userId) {
 		this.userId = userId;
 	}
-	public keyGen(){
-		RSA rsa = new RSA(); // Create an instance of the RSA class
+	
+	public void keyGen(){
+		rsa = new RSA();
 		HashMap<String, Key> keyPair = rsa.generateKeyPair(); // Call generateKeyPair method
 		// Retrieve the keys from the HashMap
 		privateKey = (PrivateKey) keyPair.get("privateKey");
@@ -93,9 +106,22 @@ public class ClientHandler implements Runnable {
 				if (!friends.contains(friendId)) {
 					
 					friends.add(friendId);
+					friendHandler.addUserAsFriend(userId);
 
 					
 					writer.println("Friend added: " + friendId);
+					
+					PrintWriter recipientWriter = friendHandler.getWriter();
+					
+					if (recipientWriter != null) {
+						
+						 recipientWriter.println(userId + " added you.");
+				         recipientWriter.flush();
+						
+					}
+					
+					DiffieHellman.getKeys(userId, friendId, server);
+					
 
 					//Adicionar o nome do amigo
 					// fazer troca de keys ou seja chamar DH
@@ -116,6 +142,11 @@ public class ClientHandler implements Runnable {
         }
 	}
 	
+	public void addUserAsFriend(String userId) {
+		friends.add(userId);
+		
+	}
+	
 	private void sendPM(String command) {
 		
 		String[] splited = command.split(" ", 3);
@@ -124,22 +155,34 @@ public class ClientHandler implements Runnable {
 			String friendId = splited[1];
 			String message = splited[2];
 			
-			if (friends.contains(friendId)) {
+			if (secretKeys.containsKey(friendId)) {
 				
-				writer.println("You to " + friendId + ": " + message);
-	            writer.flush();
+				try {
+					String encryptMessage = rsa.encrypt(message, secretKeys.get(friendId));
+					
+					ClientHandler friendHandler = server.getClientHandler(friendId);
 				
-				ClientHandler friendHandler = server.getClientHandler(friendId);
-				if (friendHandler != null) {
-					//friendHandler.sendMessage(friendId, message);
-					friendHandler.receiveMessage(userId, message);
+					if (friends.contains(friendId)) {
+						
+						writer.println("You to " + friendId + ": " + message);
+			            writer.flush();
+						
+						if (friendHandler != null) {
+							friendHandler.receiveMessage(userId, friendId, encryptMessage);
 
+						}
+						
+					} else {
+						writer.println("User '" + friendId + "' is not your friend.");
+						writer.flush();
+		            }
+					
+					
+				} catch (Exception e) {
+					e.printStackTrace();
 				}
 				
-			} else {
-				writer.println("User '" + friendId + "' is not your friend.");
-				writer.flush();
-            }
+			}
 			
 		} else {
             writer.println("Invalid command. Usage: /send friendId message");
@@ -148,29 +191,28 @@ public class ClientHandler implements Runnable {
 		
 	}
 	
-	private void sendMessage(String friendId, String message) {
-		writer.println("You: " + message);
+	private void receiveMessage(String senderId, String friendId, String message) {
 		
-		ClientHandler friendHandler = server.getClientHandler(friendId);
-		if (friendHandler != null) {
-			friendHandler.receiveMessage(userId, message); 
-		} else {
-			writer.println("Friend not found: " + friendId);
-		}
-	}
-	
-	private void receiveMessage(String senderId, String message) {
-		//writer.println(senderId + ": " + message);
-		
-		PrintWriter recipientWriter = server.getClientHandler(userId).getWriter();
-		
-		if (recipientWriter != null) {
+		try {
 			
-			 recipientWriter.println(senderId + " to You: " + message);
-	         recipientWriter.flush();
+			ClientHandler friendHandler = server.getClientHandler(friendId);
 			
-		} else {
-			System.err.println("Error: Recipient writer not found for user " + userId);
+			String decryptMessage = rsa.decrypt(message, friendHandler.getSecretKey(senderId));
+			
+			PrintWriter recipientWriter = server.getClientHandler(userId).getWriter();
+			
+			if (recipientWriter != null) {
+				
+				 recipientWriter.println(senderId + " to You: " + decryptMessage);
+		         recipientWriter.flush();
+				
+			} else {
+				System.err.println("Error: Recipient writer not found for user " + userId);
+			}
+			
+			
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 		
 	}
@@ -178,5 +220,22 @@ public class ClientHandler implements Runnable {
 	public PrintWriter getWriter() {
         return writer;
     }
+	
+	public PrivateKey getPrivateKey() {
+		return privateKey;
+	}
+	
+	public PublicKey getPublicKey() {
+		return publicKey;
+	}
+	
+	public void addSecretKeys(String userId, BigInteger secretKey) {
+		secretKeys.put(userId, secretKey);
+	}
+	
+	public BigInteger getSecretKey(String userId) {
+		if (secretKeys.containsKey(userId)) return secretKeys.get(userId);
+		return null;
+	}
 	
 }
